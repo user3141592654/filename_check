@@ -1,4 +1,4 @@
-
+#!/usr/bin/perl
 =pod
 Copyright (c) 2015 Wilfredo Rosario
 
@@ -21,50 +21,38 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 =cut
 
-die "\tYou need at least perl version 5.11 for this program to run properly. \n\tYou have perl version $]\n" unless $] >= 5.011;
-use FindBin;
-use lib "$Bin/../lib";
-
-#please use a flat stucture
 
 my($CHECK_FOLDER, @files,%fhash,%fpartidhash,%fpartidhash_pop,$CollectionCode,$PartnerID,$unit_of_work);
 
 	if(scalar(@ARGV) == 1){
 		$CHECK_FOLDER=$ARGV[0];
 		if(($CHECK_FOLDER=~m/^(\s)*(-)+h/i)or($CHECK_FOLDER=~m/^(\s)*\/\?$/i)){
-		print "option1\n";
-		print"
-Hello,
-To use this program either:
-(1) place this prgram in the desired folder and either double click it to run it or type its path into a terminal or
-(2) type its path into a terminal and then type the path of the folder you want to check
-Sample: Program_Name.pl /Path/to/some/folder
-
-NOTE: If option 1 is used, the program will display 'fail', because you have to remove the program from the folder being checked.
-		";
-		exit;
+			print"\nTo use this program: type its path into a terminal and then \ntype the path of the folder you want to check \nSample: /Path/to/script/Program_Name.pl /Path/to/some/folder\n\n";	
+			exit;
 		}else{
-
-		opendir($DH, $CHECK_FOLDER) || die "can't open $CHECK_FOLDER $!";
-		@files = grep {!/^(\.)+/ && -f "$CHECK_FOLDER/$_"} readdir($DH); # all files that not hidden
-		closedir $DH;
+		
+			opendir($DH, $CHECK_FOLDER) || die "can't open $CHECK_FOLDER $!";
+			@files = grep {!/^(\.)+/ && -f "$CHECK_FOLDER/$_"} readdir($DH); # all files that not hidden
+			closedir $DH;
 		}
-	}else{
-
-		opendir($DH, $FindBin::Bin) || die "can't open $FindBin::Bin $!";
-		$CHECK_FOLDER=$FindBin::Bin;
-		@files = grep {!/^(\.)+/ && -f "$CHECK_FOLDER/$_"} readdir($DH); # all files that not hidden
-		closedir $DH;
+	}
+	else{
+		if($] >= 5.011){
+			opendir($DH, $FindBin::Bin) || die "can't open $FindBin::Bin $!";
+			$CHECK_FOLDER=$FindBin::Bin;
+			@files = grep {!/^(\.)+/ && -f "$CHECK_FOLDER/$_"} readdir($DH); # all files that not hidden
+			closedir $DH;
+		}else{
+			die "You must enter a folder path\n";
+		}
 	}
 
 	print "\nHello,\nYou are in \n$CHECK_FOLDER/\n\n";
 
-my $PERCENT_DEVIATION=10/100;#ten percent, filesize +/- 
 
 for(my $i=0;$i<=scalar(@files);$i++){
 	$fhash{$files[$i]}='failure of name: ';#files fail by default
 }
-
 
 #=================Start of Automatic Assignation of Variables===================
 
@@ -84,74 +72,82 @@ my($key2, $PageID, $uow,$ext,$front_matter,$back_matter,$is_d,$PartID);
 
 	$key2=$key;
 	$key2=~s/\.(\w)+$//;
-	
+
 	undef($is_d);
-	if($key2=~m/(_m|_d)$/){
+	if($key2=~m/(_|-)(m|d)$/){
 		$is_d=substr($key2, $-[0], $+[0]-$-[0]);
 		$is_d=~s/(_)+//;
 		$key2=~s/(_m|_d)$//;
 
 	}
-	
-	if($key=~m/(\d){6}_(\d){6}_(\w){1}\.(\w)+$/){#regular file name
+	undef($front_matter); undef($back_matter);
+	if($key=~m/(\d)+(_|-)(\d){6}(_|-)(\w){1}\.(\w)+$/){#regular file name
+
 		$PartID=$key2;
 		$PartID=~s/_(\d){6}$//;
 		$PartID=~s/(\d){6}$//;
 
-	}elsif($key=~m/(\d){6}_(\d){6}_(\d){2}_(\w){1}\.(\w)+$/){#oversized xx file name
+	}elsif($key=~m/(\d){6}(_|-)(\d){6}(_|-)(\d){2}(_|-)(\w){1}\.(\w)+$/){#oversized xx file name
+
 		$key2=~s/_(\d){2}$//;
 		$PartID=$key2;
 		$PartID=~s/_(\d){6}$//;
 		$PartID=~s/(\d){6}$//;
 
-	}elsif($key=~m/(\d){6}_(\d){6}_(\d){2}_(\d){2}_(\w){1}\.(\w)+$/){#oversized xx yy file name
+	}elsif($key=~m/(\d){6}(_|-)(\d){6}(_|-)(\d){2}(_|-)(\d){2}(_|-)(\w){1}\.(\w)+$/){#oversized xx yy file name
+
 		$key2=~s/_(\d){2}$//;
 		$key2=~s/(\d){2}$//;
 		$PartID=$key2;
 		$PartID=~s/_(\d){6}$//;
 		$PartID=~s/(\d){6}$//;
 
-	}elsif($key=~m/(\d){6}_fr(\d){2}_(\w){1}\.(\w)+$/){#front matter file name
+	}elsif($key=~m/(\d){6}(_|-)fr(\d){2}(_|-)(\w){1}\.(\w)+$/){#front matter file name
+
 		if($key2=~m/(\d){2}$/){
 			$front_matter=substr($key2, $-[0], $+[0]-$-[0]);
 			$front_matter=$front_matter+0;
-			$key2=~s/_(fr){1}(\d){2}$//;
+			$key2=~s/(_|-)(fr){1}(\d){2}$//;
+			$key2=~s/(\d){6}$//;
 			$PartID=$key2;
-			$PartID=~s/(\d){6}$//;
 
 		}
 
-	}elsif($key=~m/(\d){6}_bk(\d){2}_(\w){1}\.(\w)+$/){#back matter file name
+	}elsif($key=~m/(\d){6}(_|-)bk(\d){2}(_|-)(\w){1}\.(\w)+$/){#back matter file name
 
 		if($key2=~m/(\d){2}$/){
 			$back_matter=substr($key2, $-[0], $+[0]-$-[0]);
 			$back_matter=$back_matter+0;
-			$key2=~s/_(bk){1}(\d){2}$//;
+			$key2=~s/(_|-)(bk){1}(\d){2}$//;
+			$key2=~s/(\d){6}$//;
 			$PartID=$key2;
-			$PartID=~s/_(\d){6}$//;
 
 		}
 	}
+
+
 	if ($PartID !~ m/^(\s)*$/){
 
 		$fPartIDhash{'MAXfront'.$PartID}=$front_matter unless (($fPartIDhash{'MAXfront'.$PartID}+0)>$front_matter);
+
 		$fPartIDhash{'MAXback'.$PartID}=$back_matter unless (($fPartIDhash{'MAXback'.$PartID}+0)>$back_matter);
 
-		#PageID
-		if($key2=~m/(\d){6}$/){
-			$PageID=substr($key2, $-[0], $+[0]-$-[0]);
-			$PageID=$PageID+0;
-			$key2=~s/\_(\d){6}$//;
-			if(($fPartIDhash{'MAXpageID'.$PartID} =~m/^(\s)*$/)||($fPartIDhash{'MAXpageID'.$PartID} eq undef)){
-				$fPartIDhash{'MAXpageID'.$PartID}=$PageID+0;
+		if($front_matter=~m/^(\s)*$/){
+			#PageID
+			if($key2=~m/(\d){6}$/){
+				$PageID=substr($key2, $-[0], $+[0]-$-[0]);
+				$PageID=$PageID+0;
+				$key2=~s/\_(\d){6}$//;
+				if(($fPartIDhash{'MAXpageID'.$PartID} =~m/^(\s)*$/)||($fPartIDhash{'MAXpageID'.$PartID} eq undef)){
+					$fPartIDhash{'MAXpageID'.$PartID}=$PageID+0;
+				}
+				$fPartIDhash{'MAXpageID'.$PartID}=$PageID unless ((($fPartIDhash{'MAXpageID'.$PartID}+0)>=$PageID)||($PageID eq undef)||($PageID=~m/^(\s)*$/));
+				if(($fPartIDhash{'MINpageID'.$PartID} =~m/^(\s)*$/)||($fPartIDhash{'MINpageID'.$PartID} eq undef)){
+					$fPartIDhash{'MINpageID'.$PartID}=$PageID+0;
+				}
+				$fPartIDhash{'MINpageID'.$PartID}=$PageID unless ((($fPartIDhash{'MINpageID'.$PartID}+0)<=$PageID)||($PageID eq undef)||($PageID=~m/^(\s)*$/));
 			}
-			$fPartIDhash{'MAXpageID'.$PartID}=$PageID unless ((($fPartIDhash{'MAXpageID'.$PartID}+0)>=$PageID)||($PageID eq undef)||($PageID=~m/^(\s)*$/));
-			if(($fPartIDhash{'MINpageID'.$PartID} =~m/^(\s)*$/)||($fPartIDhash{'MINpageID'.$PartID} eq undef)){
-				$fPartIDhash{'MINpageID'.$PartID}=$PageID+0;
-			}
-			$fPartIDhash{'MINpageID'.$PartID}=$PageID unless ((($fPartIDhash{'MINpageID'.$PartID}+0)<=$PageID)||($PageID eq undef)||($PageID=~m/^(\s)*$/));
 		}
-		
 		#unit of work
 		if($key2=~m/(\d){6}$/){
 			$unit_of_work=substr($key2, $-[0], $+[0]-$-[0]);
@@ -185,13 +181,7 @@ my($key2, $PageID, $uow,$ext,$front_matter,$back_matter,$is_d,$PartID);
 				$fPartIDhash{'sized'.$PartID}=int(($fPartIDhash{'sized'.$PartID}+$sized));
 			}
 			
-			#10 percent bigger
-			$USEsized=(-s "$CHECK_FOLDER/$key")+($PERCENT_DEVIATION*(-s "$CHECK_FOLDER/$key"));# use 10 percent bigger than the average size d file;
-			if(($fPartIDhash{'USEsized'.$PartID}=~m/^(\s)*$/)||($fPartIDhash{'USEsized'.$PartID}eq undef)){
-				$fPartIDhash{'USEsized'.$PartID}=$USEsized;
-			}else{
-			$fPartIDhash{'USEsized'.$PartID}=int(($fPartIDhash{'USEsized'.$PartID}+$USEsized));
-			}
+
 		}elsif($is_d=~m/m/i){#min size of m
 			$fPartIDhash{'m_count'.$PartID}=$fPartIDhash{'m_count'.$PartID}+1;
 			#regular m size
@@ -201,14 +191,8 @@ my($key2, $PageID, $uow,$ext,$front_matter,$back_matter,$is_d,$PartID);
 			}else{
 				$fPartIDhash{'sizem'.$PartID}=int(($fPartIDhash{'sizem'.$PartID}+$sizem));
 			}
-			#10 percent smaller
-			$USEsizem=(-s "$CHECK_FOLDER/$key")-($PERCENT_DEVIATION*(-s "$CHECK_FOLDER/$key"));# use 10 percent smaller than the average size m file;
-			if($fPartIDhash{'USEsizem'.$PartID}=~m/^(\s)*$/){
-				$fPartIDhash{'USEsizem'.$PartID}=$USEsizem;
-			}else{
-			$fPartIDhash{'USEsizem'.$PartID}=int(($fPartIDhash{'USEsizem'.$PartID}+$USEsizem));
-			}
-			
+
+	
 		}
 
 		#extension
@@ -250,12 +234,12 @@ my($key2, $PageID, $uow,$ext,$front_matter,$back_matter,$is_d,$PartID);
 	if($key=~m/eoc\.csv$/i){
 	undef($fPartIDhash{'EOC'});
 		$fPartIDhash{'EOC'}='yes';
-		$fPartIDhash{$key}='Pass EOC';
+		$fPartIDhash{$key}='pass EOC';
+		$fhash{$key}='pass EOC';
+
 	}
 	
 }
-
-
 
 #Assign values to the global variables
 undef($key);undef($value);undef(@popularity);undef(@popularity2);
@@ -304,8 +288,8 @@ $MIN_page_id=($fPartIDhash{'MINpageID'.$PreferredPartID})unless $fPartIDhash{'MI
 $MINCARDS=($MIN_page_id+0) unless $fPartIDhash{'MINpageID'.$PreferredPartID}=~m/^(\s)*$/;
 $MAX_page_id=($fPartIDhash{'MAXpageID'.$PreferredPartID})unless $fPartIDhash{'MAXpageID'.$PreferredPartID}=~m/^(\s)*$/;
 $MAXCARDS=($MAX_page_id+0) unless $fPartIDhash{'MAXpageID'.$PreferredPartID}=~m/^(\s)*$/;
-$MAX_front_matter=($fPartIDhash{'MAXfront'.$PreferredPartID}+0);# unless $fPartIDhash{'MAXfront'.$PreferredPartID}=~m/^(\s)*$/;
-$MAX_back_matter=($fPartIDhash{'MAXback'.$PreferredPartID}+0);# unless $fPartIDhash{'MAXfront'.$PreferredPartID}=~m/^(\s)*$/;
+$MAX_front_matter=($fPartIDhash{'MAXfront'.$PreferredPartID}+0);
+$MAX_back_matter=($fPartIDhash{'MAXback'.$PreferredPartID}+0);
 $extension=$fPartIDhash{'ext'.$PreferredPartID};
 $EOC=$fPartIDhash{'EOC'};
 
@@ -318,19 +302,10 @@ if($fPartIDhash{'m_count'.$PreferredPartID} =~m/^(\s)*$/){
 }
 unless($fPartIDhash{'sized'.$PreferredPartID}=~m/^(\s)*$/){
 $AVG_SIZE_DERIVS=int(($fPartIDhash{'sized'.$PreferredPartID})/$fPartIDhash{'d_count'.$PreferredPartID});
-$MAX_SIZE_DERIVS=int(
-		($fPartIDhash{'sized'.$PreferredPartID}+
-			(	$PERCENT_DEVIATION*$fPartIDhash{'sized'.$PreferredPartID}	)
-		)/$fPartIDhash{'d_count'.$PreferredPartID}
-	);
+
 }
 unless($fPartIDhash{'sizem'.$PreferredPartID}=~m/^(\s)*$/){
 	$AVG_SIZE_MASTER=int(($fPartIDhash{'sizem'.$PreferredPartID})/$fPartIDhash{'m_count'.$PreferredPartID});
-	$MIN_SIZE_MASTER=int(
-		($fPartIDhash{'sizem'.$PreferredPartID}-
-			(	$PERCENT_DEVIATION*$fPartIDhash{'sizem'.$PreferredPartID}	)
-		)/$fPartIDhash{'m_count'.$PreferredPartID}
-	);
 }
 $target=$fPartIDhash{'target'.$PreferredPartID};
 
@@ -339,36 +314,36 @@ write;
 format STDOUT =
 @<<<<<<<<<<<<<<<<<<<<
 'SUMMARY OF FEATURES'
-@|||||||||||||||||||||||||||||||||||||||||||||||||
-'------------------------------------------------'
-@<<<<<<<<<<<<<<<<<<<<<<<<@<<<<<<<<<<<<<<<<<<<<<@>>
-'| <partner id>      is: ', $partner_id            ,' |'
-@<<<<<<<<<<<<<<<<<<<<<<<<@<<<<<<<<<<<<<<<<<<<<<@>>
-'| <collection code> is: ', $collection_code      ,' |'
-@<<<<<<<<<<<<<<<<<<<<<<<<@<<<<<<<<<<<<<<<<<<<<<@>>
-'| <unit of work>    is: ', $uow                  ,' |'
-@<<<<<<<<<<<<<<<<<<<<<<<<@<<<<<<<<<<<<<<<<<<<<<@>>
-'| <page id> starts  at: ', $MIN_page_id          ,' |'
-@<<<<<<<<<<<<<<<<<<<<<<<<@<<<<<<<<<<<<<<<<<<<<<@>>
-'| <page id> ends    at: ', $MAX_page_id          ,' |'
-@<<<<<<<<<<<<<<<<<<<<<<<<@<<<<<<<<<<<<<<<<<<<<<@>>
+@|||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||
+' ----------------------------------------------------------------'
+@<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<@<<<<<<<<<<<<<<<<<<<<<@>>
+'| <partner id>  (there may not be one): ', $partner_id            ,' |'
+@<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<@<<<<<<<<<<<<<<<<<<<<<@>>
+'| <collection code> : ', $collection_code      ,' |'
+@<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<@<<<<<<<<<<<<<<<<<<<<<@>>
+'| <unit of work>    : ', $uow                  ,' |'
+@<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<@<<<<<<<<<<<<<<<<<<<<<@>>
+'| <page id> starts  : ', $MIN_page_id          ,' |'
+@<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<@<<<<<<<<<<<<<<<<<<<<<@>>
+'| <page id> ends    : ', $MAX_page_id          ,' |'
+@<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<@<<<<<<<<<<<<<<<<<<<<<@>>
 '| front matter pages  : ', $MAX_front_matter     ,' |'
-@<<<<<<<<<<<<<<<<<<<<<<<<@<<<<<<<<<<<<<<<<<<<<<@>>
+@<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<@<<<<<<<<<<<<<<<<<<<<<@>>
 '| back matter pages   : ', $MAX_back_matter      ,' |'
-@<<<<<<<<<<<<<<<<<<<<<<<<@<<<<<<<<<<<<<<<<<<<<<@>>
+@<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<@<<<<<<<<<<<<<<<<<<<<<@>>
 '| extension           : ', $extension            ,' |'
-@<<<<<<<<<<<<<<<<<<<<<<<<@<<<<<<<<<<<<<<<<<<<<<@>>
+@<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<@<<<<<<<<<<<<<<<<<<<<<@>>
 '| Is there a target?  : ', $target               ,' |'
-@<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<@<<<<<<<<<<<@>>
+@<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<@<<<<<<<<<<<<<<<<<<<<<@>>
 '| More than 1 <collection code>? : ', $MoreCollectionCodes   ,' |'
-@||||||||||||||||||||||||||||||||||||||||||||||||||
-'|                                                |'
-@<<<<<<<<<<<<<<<<<<<<<<<<@||||||||||||||||@>>>>>>>
-'| Maximum size of derivs: ', $MAX_SIZE_DERIVS,' bytes |'
-@<<<<<<<<<<<<<<<<<<<<<<<<@||||||||||||||||@>>>>>>>
-'| Minimum size of master: ', $MIN_SIZE_MASTER,' bytes |'
-@||||||||||||||||||||||||||||||||||||||||||||||||||
-'------------------------------------------------'
+@|||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||
+'|                                                                |'
+@<<<<<<<<<<<<<<<<<<<<<<<<<<<<@||||||||||||||||||||||||||||@>>>>>>>
+'| Average size of derivs: ', $AVG_SIZE_DERIVS,' bytes |'
+@<<<<<<<<<<<<<<<<<<<<<<<<<<<<@||||||||||||||||||||||||||||@>>>>>>>
+'| Average size of master: ', $AVG_SIZE_MASTER,' bytes |'
+@|||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||
+' ----------------------------------------------------------------'
 .
 #=================End of Automatic Assignation of Variables===================
 
@@ -451,14 +426,14 @@ print"\n\n";
 		print $partner_id."_".$collection_code.sprintf("%06d",$uow)."_fr".sprintf("%02d",$MAX_front_matter)."_d"."$extension\n";
 	}
 	undef($redo_inner);
-	while($redo_inner !~ m/^(\s)*(y|n)/i){
+	while ($redo_inner !~ m/^(\s)*(y|n)/i){
 		print "\nFile names ok? (y for yes, n for no. If not, you will be asked more questions.)\n";
 		$redo_inner=<>;
 		$redo=$redo_inner;
 		if($redo_inner =~ m/^(\s)*n/i){
 			undef($partner_id);undef($collection_code);undef($uow);undef($MIN_page_id);undef($MAX_page_id);undef($MAX_front_matter);undef($MAX_back_matter);
 			undef($target);undef($extension);
-		}
+		} 
 	}
 }
 
@@ -469,36 +444,6 @@ print"\n\n";
 		}
 	}
 
-
-$redo='n';
-while($redo=~m/^(\s)*n/ig){
-print "\n";
-	while($MAX_SIZE_DERIVS !~ m/^(\d)+$/){
-		print "\nWhat is the largest size (in bytes) of a d file?(number) You can use commas.\n";
-		$MAX_SIZE_DERIVS=<>;#typical max size of d file in bytes
-		$MAX_SIZE_DERIVS=~s/(\D)+//g;
-		$MAX_SIZE_DERIVS=$MAX_SIZE_DERIVS+0;
-	}
-
-	while($MIN_SIZE_MASTER !~ m/^(\d)+$/){
-		print "\nWhat is the smallest size (in bytes) of an m file?(number) You can use commas.\n";
-		$MIN_SIZE_MASTER=<>;#typical min size of m file in bytes
-		$MIN_SIZE_MASTER=~s/(\D)+//g;
-		$MIN_SIZE_MASTER=$MIN_SIZE_MASTER+0;
-	}
-	print "\nFILE SIZES:\n";
-	print "Minimum size of master= $MIN_SIZE_MASTER\n";
-	print "Maximum size of derivs= $MAX_SIZE_DERIVS\n";
-	undef($redo_inner);
-	while($redo_inner !~ m/^(\s)*(y|n)/i){
-		print "\nFile sizes ok? (y for yes, n for no. If not, you will be asked more questions.)\n";
-		$redo_inner=<>;
-		$redo=$redo_inner;
-		if($redo_inner =~ m/^(\s)*n/i){
-			undef($MAX_SIZE_DERIVS);undef($MIN_SIZE_MASTER);
-		}
-	}
-}
 #===================================== end of questions =================================
 
 $SUM=$MAXCARDS+$MAX_front_matter+$MAX_back_matter;
@@ -517,14 +462,17 @@ if($collection_code !~ m/^(\s)*$/){#the collection code may or may not be there
 		
 		$go=0;
 	}
+	$go2=1;
+
 	if(($MAX_back_matter>0) and ($go==1)){
 		$basename=~s/_(\d){6}$//g;
 		$basename=~s/(\_fr|\_bk){1}(\d){2}$//g;
 		$basename=$basename.'_bk'.sprintf("%02d",$MAX_back_matter);
 		$MAX_back_matter--;
-		
+		$go2=0;	
 	}
-	if(($MAX_back_matter<=0) and ($MAX_front_matter<=0)){
+
+	if(($MAX_back_matter<=0) and ($MAX_max_matter<=0) and ($go2==1)){
 		if($MIN_page_id<$MAX_page_id){
 			$basename=~s/_(\d){6}$//g;
 			$basename=~s/(\_fr|\_bk){1}(\d){2}$//g;
@@ -532,29 +480,38 @@ if($collection_code !~ m/^(\s)*$/){#the collection code may or may not be there
 			$MIN_page_id++;
 		}
 	}
-	
+
 	$master=$basename."_m".$extension;
 	$deriv =$basename."_d".$extension;
+
 	#check compliance of file sizes
+    $SIZE_MASTER=(-s "$CHECK_FOLDER/$master");
+    $SIZE_DERIV=(-s "$CHECK_FOLDER/$deriv");
+
+        #master file size
 	if(exists $fhash{$master}){
-		if(((-s $master)<$MIN_SIZE_MASTER)||((-s $master)<=$AVG_SIZE_DERIVS)){
+		if(($SIZE_MASTER==0)||($SIZE_MASTER<=$SIZE_DERIVS)){
+
 			$fhash{$master}='failure of size, too small';	
 		}else{
 			$fhash{$master}='pass';
 		}
 		
+
 	}
+        #deriv file size
 	if(exists $fhash{$deriv}){
-		if(((-s $deriv)>$MAX_SIZE_DERIVS)||((-s $master)>=$AVG_SIZE_MASTER)){
+		if($SIZE_DERIV>=$SIZE_MASTER){
 			$fhash{$deriv}='failure of size, too large';
-		}elsif((-s $deriv)==0){# empty file
-			$fhash{$deriv}='failure of size, too small';	
+		}elsif($SIZE_DERIV==0){# empty file
+			$fhash{$deriv}='failure of size, too small';
+
 		}else{
 			$fhash{$deriv}='pass';	
-		}
-		
+		}	
 	}
-	
+
+
 	#used to determine the state of m and d as a set, i.e. if the files exist
 	$file_exists=1;#true
 	$err_str=undef;
@@ -602,8 +559,6 @@ if(scalar(@Errors)!=0){
 	pass();
 }
 
-print "Press RETURN or ENTER to continue...\n";
-$input=<>;
 #==========================================================================================================================
 
 
