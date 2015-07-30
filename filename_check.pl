@@ -76,39 +76,43 @@ my($key2, $PageID, $uow,$ext,$front_matter,$back_matter,$is_d,$PartID);
 	undef($is_d);
 	if($key2=~m/(_|-)(m|d)$/){
 		$is_d=substr($key2, $-[0], $+[0]-$-[0]);
-		$is_d=~s/(_)+//;
-		$key2=~s/(_m|_d)$//;
+		$is_d=~s/(_|-)+//;
+		$key2=~s/(_|-)(m|d)$//;
 
 	}
 	undef($front_matter); undef($back_matter);
-	if($key=~m/(\d)+(_|-)(\d){6}(_|-)(\w){1}\.(\w)+$/){#regular file name
+	if($key=~m/(\d)+(_|-)(\d)+(_|-)(\d)+(_|-)(\d)+(_|-)(\w){1}\.(\w)+$/){#oversized xx yy file name
+
+		$key2=~s/(_|-)(\d)+$//;
+		$key2=~s/(_|-)(\d)+$//;
+		$PartID=$key2;
+		$PartID=~s/(_|-)(\d)+$//;
+		$PartID=~s/(\d)+$//;
+
+	}
+	elsif($key=~m/(\d)+(_|-)(\d)+(_|-)(\d)+(_|-)(\w){1}\.(\w)+$/){#oversized xx file name
+
+		$key2=~s/(_|-)(\d)+$//;
+		$PartID=$key2;
+		$PartID=~s/(_|-)(\d)+$//;
+		$PartID=~s/(\d)+$//;
+
+	}
+	elsif($key=~m/(\d)+(_|-)(\d)+(_|-)(\w){1}\.(\w)+$/){#regular file name
 
 		$PartID=$key2;
-		$PartID=~s/_(\d){6}$//;
-		$PartID=~s/(\d){6}$//;
+		$PartID=~s/(_|-)(\d)+$//;
+		$PartID=~s/(\d)+$//;
 
-	}elsif($key=~m/(\d){6}(_|-)(\d){6}(_|-)(\d){2}(_|-)(\w){1}\.(\w)+$/){#oversized xx file name
+	}
 
-		$key2=~s/_(\d){2}$//;
-		$PartID=$key2;
-		$PartID=~s/_(\d){6}$//;
-		$PartID=~s/(\d){6}$//;
-
-	}elsif($key=~m/(\d){6}(_|-)(\d){6}(_|-)(\d){2}(_|-)(\d){2}(_|-)(\w){1}\.(\w)+$/){#oversized xx yy file name
-
-		$key2=~s/_(\d){2}$//;
-		$key2=~s/(\d){2}$//;
-		$PartID=$key2;
-		$PartID=~s/_(\d){6}$//;
-		$PartID=~s/(\d){6}$//;
-
-	}elsif($key=~m/(\d){6}(_|-)fr(\d){2}(_|-)(\w){1}\.(\w)+$/){#front matter file name
+	elsif($key=~m/(\d)+(_|-)fr(\d)+(_|-)(\w){1}\.(\w)+$/){#front matter file name
 
 		if($key2=~m/(\d){2}$/){
 			$front_matter=substr($key2, $-[0], $+[0]-$-[0]);
 			$front_matter=$front_matter+0;
-			$key2=~s/(_|-)(fr){1}(\d){2}$//;
-			$key2=~s/(\d){6}$//;
+			$key2=~s/(_|-)fr(\d)+$//;
+			$key2=~s/(\d)+$//;
 			$PartID=$key2;
 
 		}
@@ -118,8 +122,8 @@ my($key2, $PageID, $uow,$ext,$front_matter,$back_matter,$is_d,$PartID);
 		if($key2=~m/(\d){2}$/){
 			$back_matter=substr($key2, $-[0], $+[0]-$-[0]);
 			$back_matter=$back_matter+0;
-			$key2=~s/(_|-)(bk){1}(\d){2}$//;
-			$key2=~s/(\d){6}$//;
+			$key2=~s/(_|-)bk(\d)+$//;
+			$key2=~s/(\d)+$//;
 			$PartID=$key2;
 
 		}
@@ -132,12 +136,12 @@ my($key2, $PageID, $uow,$ext,$front_matter,$back_matter,$is_d,$PartID);
 
 		$fPartIDhash{'MAXback'.$PartID}=$back_matter unless (($fPartIDhash{'MAXback'.$PartID}+0)>$back_matter);
 
-		if($front_matter=~m/^(\s)*$/){
+		if(($front_matter=~m/^(\s)*$/) and ($back_matter=~m/^(\s)*$/)){
 			#PageID
-			if($key2=~m/(\d){6}$/){
+			if($key2=~m/(\d)+$/){
 				$PageID=substr($key2, $-[0], $+[0]-$-[0]);
 				$PageID=$PageID+0;
-				$key2=~s/\_(\d){6}$//;
+				$key2=~s/(_|-)(\d)+$//;
 				if(($fPartIDhash{'MAXpageID'.$PartID} =~m/^(\s)*$/)||($fPartIDhash{'MAXpageID'.$PartID} eq undef)){
 					$fPartIDhash{'MAXpageID'.$PartID}=$PageID+0;
 				}
@@ -149,10 +153,10 @@ my($key2, $PageID, $uow,$ext,$front_matter,$back_matter,$is_d,$PartID);
 			}
 		}
 		#unit of work
-		if($key2=~m/(\d){6}$/){
+		if($key2=~m/(\d)+$/){
 			$unit_of_work=substr($key2, $-[0], $+[0]-$-[0]);
 			$unit_of_work=$unit_of_work+0;
-			$key2=~s/(\d){6}$//;
+			$key2=~s/(\d)+$//;
 				
 			if(($fPartIDhash{'MINuow'.$PartID}=~m/^(\s)*$/)||($fPartIDhash{'MINuow'.$PartID}eq undef)){
 				$fPartIDhash{'MINuow'.$PartID}=$unit_of_work;
@@ -209,9 +213,9 @@ my($key2, $PageID, $uow,$ext,$front_matter,$back_matter,$is_d,$PartID);
 
 		$PartID=~m/^(\w|\W)+_/;
 		$PartnerID=substr($PartID,$-[0],$+[0]-$-[0]);
-		$PartnerID=~s/(_)+$//;
+		$PartnerID=~s/(_|-)+$//;
 		$CollectionCode=substr($PartID,$+[0]);
-		$CollectionCode=~s/(_)+$//;
+		$CollectionCode=~s/(_|-)+$//;
 		$fPartIDhash{'PartnerID'.$PartID}=$PartnerID;
 		$fPartIDhash{'CollectionCode'.$PartID}=$CollectionCode;
 	}
@@ -220,9 +224,9 @@ my($key2, $PageID, $uow,$ext,$front_matter,$back_matter,$is_d,$PartID);
 	if ($fPartIDhash{'target'.$PartID} !~ m/^(y|n)/i){
 		$fPartIDhash{'target'.$PartID}='no';
 	}
-	if($key=~m/_target/i){
+	if($key=~m/(_|-)target/i){
 	$PartID=$key;
-	$PartID=~s/(\d){6}_target_(\w|\W)*$//;
+	$PartID=~s/(\d)+(_|-)target(_|-)(\w|\W)*$//;
 	undef($fPartIDhash{'target'.$PartID});
 		$fPartIDhash{'target'.$PartID}='yes';
 	}
@@ -308,7 +312,6 @@ unless($fPartIDhash{'sizem'.$PreferredPartID}=~m/^(\s)*$/){
 	$AVG_SIZE_MASTER=int(($fPartIDhash{'sizem'.$PreferredPartID})/$fPartIDhash{'m_count'.$PreferredPartID});
 }
 $target=$fPartIDhash{'target'.$PreferredPartID};
-
 
 write;
 format STDOUT =
@@ -455,8 +458,8 @@ if($collection_code !~ m/^(\s)*$/){#the collection code may or may not be there
 }
 	$go=1;
 	if($MAX_front_matter>0){
-		$basename=~s/_(\d){6}$//g;
-		$basename=~s/(\_fr|\_bk){1}(\d){2}$//g;
+		$basename=~s/_(\d)+$//g;
+		$basename=~s/_(fr|bk)(\d)+$//g;
 		$basename=$basename.'_fr'.sprintf("%02d",$MAX_front_matter);
 		$MAX_front_matter--;
 		
@@ -465,8 +468,8 @@ if($collection_code !~ m/^(\s)*$/){#the collection code may or may not be there
 	$go2=1;
 
 	if(($MAX_back_matter>0) and ($go==1)){
-		$basename=~s/_(\d){6}$//g;
-		$basename=~s/(\_fr|\_bk){1}(\d){2}$//g;
+		$basename=~s/_(\d)+$//g;
+		$basename=~s/_(fr|bk)(\d)+$//g;
 		$basename=$basename.'_bk'.sprintf("%02d",$MAX_back_matter);
 		$MAX_back_matter--;
 		$go2=0;	
@@ -474,8 +477,8 @@ if($collection_code !~ m/^(\s)*$/){#the collection code may or may not be there
 
 	if(($MAX_back_matter<=0) and ($MAX_max_matter<=0) and ($go2==1)){
 		if($MIN_page_id<$MAX_page_id){
-			$basename=~s/_(\d){6}$//g;
-			$basename=~s/(\_fr|\_bk){1}(\d){2}$//g;
+			$basename=~s/_(\d)+$//g;
+			$basename=~s/_(fr|bk)(\d)+$//g;
 			$basename=$basename.'_'.sprintf("%06d",$MIN_page_id);
 			$MIN_page_id++;
 		}
