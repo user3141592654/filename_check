@@ -37,14 +37,7 @@ my($CHECK_FOLDER, @files,%fhash,%fpartidhash,%fpartidhash_pop,$CollectionCode,$P
 		}
 	}
 	else{
-		if($] >= 5.011){
-			opendir($DH, $FindBin::Bin) || die "can't open $FindBin::Bin $!";
-			$CHECK_FOLDER=$FindBin::Bin;
-			@files = grep {!/^(\.)+/ && -f "$CHECK_FOLDER/$_"} readdir($DH); # all files that not hidden
-			closedir $DH;
-		}else{
-			die "You must enter a folder path\n";
-		}
+		die "You must enter a folder path\n";
 	}
 
 	print "\nHello,\nYou are in \n$CHECK_FOLDER/\n\n";
@@ -117,7 +110,7 @@ my($key2, $PageID, $uow,$ext,$front_matter,$back_matter,$is_d,$PartID);
 
 		}
 
-	}elsif($key=~m/(\d){6}(_|-)bk(\d){2}(_|-)(\w){1}\.(\w)+$/){#back matter file name
+	}elsif($key=~m/(\d)+(_|-)bk(\d)+(_|-)(\w){1}\.(\w)+$/){#back matter file name
 
 		if($key2=~m/(\d){2}$/){
 			$back_matter=substr($key2, $-[0], $+[0]-$-[0]);
